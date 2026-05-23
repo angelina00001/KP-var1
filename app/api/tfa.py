@@ -7,7 +7,12 @@ import secrets
 
 from app.database import get_db
 from app.models import User, Device, BackupCode
-from app.schemas import TOTPEnableResponse, TOTPVerifyRequest, TFAVerifyRequest, LoginResponse
+from app.schemas import (
+    TOTPEnableResponse,
+    TOTPVerifyRequest,
+    TFAVerifyRequest,
+    LoginResponse,
+)
 from app.services.totp_service import TOTPService
 from app.services.auth_service import AuthService
 from app.services.push_service import PushService
@@ -42,7 +47,9 @@ async def verify_totp(
     """Шаг 2: проверяем код и сохраняем устройство в БД"""
     secret = await pop_setup_session(redis_client, current_user.id, device_name)
     if not secret:
-        raise HTTPException(status_code=400, detail="Сессия истекла. Нажмите 'Включить 2FA' заново.")
+        raise HTTPException(
+            status_code=400, detail="Сессия истекла. Нажмите 'Включить 2FA' заново."
+        )
 
     if not TOTPService.verify_code(secret, req.code):
         raise HTTPException(status_code=401, detail="Неверный код")
@@ -54,7 +61,9 @@ async def verify_totp(
         )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail=f"Устройство '{device_name}' уже существует")
+        raise HTTPException(
+            status_code=400, detail=f"Устройство '{device_name}' уже существует"
+        )
 
     device = Device(
         user_id=current_user.id,
@@ -72,8 +81,10 @@ async def verify_totp(
         plain_codes.append(plain)
 
     devices_count = (
-        await db.execute(select(Device).where(Device.user_id == current_user.id))
-    ).scalars().all()
+        (await db.execute(select(Device).where(Device.user_id == current_user.id)))
+        .scalars()
+        .all()
+    )
     if len(devices_count) == 1:
         current_user.tfa_enabled = True
 
@@ -98,10 +109,16 @@ async def verify_2fa(
 
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
     devices = (
-        await db.execute(
-            select(Device).where(Device.user_id == user.id, Device.is_active == True)
+        (
+            await db.execute(
+                select(Device).where(
+                    Device.user_id == user.id, Device.is_active == True
+                )
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     for d in devices:
         if d.totp_secret and TOTPService.verify_code(d.totp_secret, req.code):
@@ -166,7 +183,9 @@ async def verify_push_approval(
     """
     user_id = await redis_client.get(f"push_challenge:{request.nonce}")
     if not user_id:
-        raise HTTPException(status_code=400, detail="Сессия подтверждения истекла или не найдена")
+        raise HTTPException(
+            status_code=400, detail="Сессия подтверждения истекла или не найдена"
+        )
 
     if not request.approved:
         await redis_client.delete(f"push_challenge:{request.nonce}")

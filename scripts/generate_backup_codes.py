@@ -46,8 +46,7 @@ async def generate_backup_codes_for_user(email: str):
             # Delete old unused backup codes
             result = await db.execute(
                 select(BackupCode).where(
-                    BackupCode.device_id == device.id,
-                    BackupCode.is_used == False
+                    BackupCode.device_id == device.id, BackupCode.is_used == False
                 )
             )
             old_codes = result.scalars().all()
@@ -74,7 +73,9 @@ async def generate_backup_codes_for_user(email: str):
 
             print()
 
-        print("⚠️  WARNING: Save these codes in a safe place! They will not be shown again.")
+        print(
+            "⚠️  WARNING: Save these codes in a safe place! They will not be shown again."
+        )
 
 
 async def main():

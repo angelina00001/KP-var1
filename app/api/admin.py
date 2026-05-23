@@ -12,132 +12,128 @@ router = APIRouter()
 
 # ========== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ==========
 
+
 @router.delete("/users/{user_id}")
 async def admin_delete_user(
-    user_id: int,
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    user_id: int, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """Удалить пользователя (только для админов)"""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Не авторизован")
-    
+
     token = auth_header[7:]
     payload = AuthService.decode_token(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Неверный токен")
-    
+
     current_user_id = int(payload.get("sub"))
     result = await db.execute(select(User).where(User.id == current_user_id))
     current_user = result.scalar_one_or_none()
-    
+
     if not current_user or not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Требуются права администратора")
-    
+
     if current_user_id == user_id:
         raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
-    
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    
+
     await db.delete(user)
     await db.commit()
-    
+
     return {"message": f"Пользователь {user.email} удалён"}
 
 
 @router.put("/users/{user_id}/disable-2fa")
 async def admin_disable_2fa(
-    user_id: int,
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    user_id: int, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """Только ВЫКЛЮЧИТЬ 2FA пользователю (принудительно сбросить)"""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Не авторизован")
-    
+
     token = auth_header[7:]
     payload = AuthService.decode_token(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Неверный токен")
-    
+
     current_user_id = int(payload.get("sub"))
     result = await db.execute(select(User).where(User.id == current_user_id))
     current_user = result.scalar_one_or_none()
-    
+
     if not current_user or not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Требуются права администратора")
-    
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    
+
     # Принудительно выключаем 2FA
     user.tfa_enabled = False
     await db.commit()
-    
+
     return {"message": f"2FA для {user.email} принудительно ВЫКЛЮЧЕНА"}
 
 
 @router.put("/users/{user_id}/toggle-admin")
 async def admin_toggle_admin(
-    user_id: int,
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    user_id: int, request: Request, db: AsyncSession = Depends(get_db)
 ):
     """Назначить/снять права администратора"""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Не авторизован")
-    
+
     token = auth_header[7:]
     payload = AuthService.decode_token(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Неверный токен")
-    
+
     current_user_id = int(payload.get("sub"))
     result = await db.execute(select(User).where(User.id == current_user_id))
     current_user = result.scalar_one_or_none()
-    
+
     if not current_user or not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Требуются права администратора")
-    
+
     if current_user_id == user_id:
         raise HTTPException(status_code=400, detail="Нельзя изменить права самого себя")
-    
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    
+
     user.is_admin = not user.is_admin
     await db.commit()
-    
+
     role = "администратором" if user.is_admin else "обычным пользователем"
-    return {"message": f"Пользователь {user.email} назначен {role}", "is_admin": user.is_admin}
+    return {
+        "message": f"Пользователь {user.email} назначен {role}",
+        "is_admin": user.is_admin,
+    }
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(
-    request: Request,
-    token: Optional[str] = None,
-    db: AsyncSession = Depends(get_db)
+    request: Request, token: Optional[str] = None, db: AsyncSession = Depends(get_db)
 ):
     # Получаем текущего пользователя
     current_user = None
-    
+
     if token:
         payload = AuthService.decode_token(token)
         if payload and payload.get("type") == "access":
             user_id = int(payload.get("sub"))
             result = await db.execute(select(User).where(User.id == user_id))
             current_user = result.scalar_one_or_none()
-    
+
     if not current_user:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
@@ -147,9 +143,10 @@ async def admin_dashboard(
                 user_id = int(payload.get("sub"))
                 result = await db.execute(select(User).where(User.id == user_id))
                 current_user = result.scalar_one_or_none()
-    
+
     if not current_user:
-        return HTMLResponse(content="""
+        return HTMLResponse(
+            content="""
         <!DOCTYPE html>
         <html>
         <head><title>Доступ запрещён</title></head>
@@ -158,10 +155,13 @@ async def admin_dashboard(
             <p>Пожалуйста, <a href="/">войдите в аккаунт</a></p>
         </body>
         </html>
-        """, status_code=401)
-    
+        """,
+            status_code=401,
+        )
+
     if not current_user.is_admin:
-        return HTMLResponse(content=f"""
+        return HTMLResponse(
+            content=f"""
         <!DOCTYPE html>
         <html>
         <head><title>Доступ запрещён</title></head>
@@ -171,17 +171,27 @@ async def admin_dashboard(
             <p><a href="/">Вернуться на главную</a></p>
         </body>
         </html>
-        """, status_code=403)
-    
+        """,
+            status_code=403,
+        )
+
     # Статистика
-    total_users = (await db.execute(select(func.count()).select_from(User))).scalar() or 0
-    tfa_users = (await db.execute(select(func.count()).select_from(User).where(User.tfa_enabled == True))).scalar() or 0
-    total_devices = (await db.execute(select(func.count()).select_from(Device))).scalar() or 0
-    
+    total_users = (
+        await db.execute(select(func.count()).select_from(User))
+    ).scalar() or 0
+    tfa_users = (
+        await db.execute(
+            select(func.count()).select_from(User).where(User.tfa_enabled == True)
+        )
+    ).scalar() or 0
+    total_devices = (
+        await db.execute(select(func.count()).select_from(Device))
+    ).scalar() or 0
+
     # Список пользователей с их устройствами
     users_result = await db.execute(select(User))
     users = users_result.scalars().all()
-    
+
     rows = ""
     for u in users:
         # Получаем устройства пользователя
@@ -192,7 +202,7 @@ async def admin_dashboard(
             devices_text += f"📱 {d.device_name}<br>"
         if not devices_text:
             devices_text = "—"
-        
+
         rows += f"""
         <tr>
             <td>{u.id}</td>
@@ -210,7 +220,7 @@ async def admin_dashboard(
             </td>
         </tr>
         """
-    
+
     return HTMLResponse(content=f"""
     <!DOCTYPE html>
     <html>

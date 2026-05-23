@@ -27,11 +27,7 @@ class PushService:
                 self._initialized = False
 
     async def send_2fa_challenge(
-        self,
-        fcm_token: str,
-        user_id: int,
-        user_email: str,
-        device_name: str
+        self, fcm_token: str, user_id: int, user_email: str, device_name: str
     ) -> str:
         """
         Send a 2FA challenge push notification.
@@ -90,7 +86,9 @@ class PushService:
 
 # Mock version for development (when Firebase is not configured)
 class MockPushService:
-    async def send_2fa_challenge(self, fcm_token: str, user_id: int, user_email: str, device_name: str) -> str:
+    async def send_2fa_challenge(
+        self, fcm_token: str, user_id: int, user_email: str, device_name: str
+    ) -> str:
         nonce = secrets.token_hex(32)
         print(f"[MOCK] Push notification sent to {fcm_token}")
         print(f"[MOCK] Nonce: {nonce}")

@@ -8,8 +8,12 @@ def _session_key(user_id: int, device_name: str) -> str:
     return f"{TOTP_SETUP_PREFIX}{user_id}:{device_name}"
 
 
-async def save_setup_session(redis, user_id: int, device_name: str, secret: str) -> None:
-    await redis.setex(_session_key(user_id, device_name), TOTP_SETUP_TTL_SECONDS, secret)
+async def save_setup_session(
+    redis, user_id: int, device_name: str, secret: str
+) -> None:
+    await redis.setex(
+        _session_key(user_id, device_name), TOTP_SETUP_TTL_SECONDS, secret
+    )
 
 
 async def pop_setup_session(redis, user_id: int, device_name: str) -> str | None:

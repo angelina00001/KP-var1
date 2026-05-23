@@ -43,8 +43,7 @@ class TestAuthService:
         """Test decoding an expired token"""
         # Create token that expires in -1 minute
         token = AuthService.create_access_token(
-            data={"sub": "789"},
-            expires_delta=timedelta(minutes=-1)
+            data={"sub": "789"}, expires_delta=timedelta(minutes=-1)
         )
         payload = AuthService.decode_token(token)
         assert payload is None  # Should be expired

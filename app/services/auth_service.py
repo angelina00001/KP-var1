@@ -21,32 +21,44 @@ class AuthService:
         return pwd_context.hash(password)
 
     @staticmethod
-    def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    def create_access_token(
+        data: dict, expires_delta: Optional[timedelta] = None
+    ) -> str:
         to_encode = data.copy()
-        expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.access_token_expire_minutes))
+        expire = datetime.now(timezone.utc) + (
+            expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+        )
         to_encode.update({"exp": expire, "type": "access"})
         return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
     @staticmethod
     def create_refresh_token(data: dict) -> str:
         to_encode = data.copy()
-        expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+        expire = datetime.now(timezone.utc) + timedelta(
+            days=settings.refresh_token_expire_days
+        )
         to_encode.update({"exp": expire, "type": "refresh"})
         return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
     @staticmethod
     def decode_token(token: str) -> Optional[dict]:
         try:
-            return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+            return jwt.decode(
+                token, settings.secret_key, algorithms=[settings.algorithm]
+            )
         except JWTError:
             return None
 
     @staticmethod
     def create_temp_2fa_token(user_id: int) -> str:
         return jwt.encode(
-            {"sub": str(user_id), "type": "2fa_temp", "exp": datetime.now(timezone.utc) + timedelta(minutes=5)},
+            {
+                "sub": str(user_id),
+                "type": "2fa_temp",
+                "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+            },
             settings.secret_key,
-            algorithm=settings.algorithm
+            algorithm=settings.algorithm,
         )
 
     @staticmethod
