@@ -1,5 +1,4 @@
 import secrets
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -113,7 +112,8 @@ async def verify_2fa(
         (
             await db.execute(
                 select(Device).where(
-                    Device.user_id == user.id, Device.is_active == True
+                    Device.user_id == user.id,
+                    Device.is_active.is_(True),
                 )
             )
         )
@@ -153,7 +153,7 @@ async def send_push_challenge(
         select(Device).where(
             Device.user_id == current_user.id,
             Device.device_type == "push",
-            Device.is_active == True,
+            Device.is_active.is_(True),
         )
     )
     device = result.scalar_one_or_none()

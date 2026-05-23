@@ -1,5 +1,4 @@
 import pyotp
-import pytest
 
 from app.services.totp_service import TOTPService
 

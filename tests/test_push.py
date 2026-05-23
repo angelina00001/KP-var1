@@ -1,7 +1,6 @@
 import pytest
 
 from app.services.push_service import MockPushService, PushService
-from app.services.totp_service import TOTPService
 
 
 class TestPushService:

@@ -1,8 +1,5 @@
 from datetime import timedelta
 
-import pytest
-
-from app.config import settings
 from app.services.auth_service import AuthService
 
 
