@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Сервис</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #fff5f8 0%, #ffe0ec 50%, #ffd6e8 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { max-width: 500px; width: 100%; }
+        .card { background: white; border-radius: 28px; box-shadow: 0 15px 40px rgba(255, 105, 180, 0.15); overflow: hidden; }
+        .card-header { background: linear-gradient(135deg, #ffb6d9 0%, #ff9ec7 100%); padding: 35px 30px; text-align: center; color: white; }
+        .card-header h1 { font-size: 28px; margin-bottom: 8px; }
+        .card-body { padding: 35px 30px; }
+        .form-group { margin-bottom: 22px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #d4619b; font-weight: 500; font-size: 14px; }
+        .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid #ffe0ec; border-radius: 16px; font-size: 16px; background: #fefafc; }
+        .form-group input:focus { outline: none; border-color: #ff9ec7; }
+        .btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #ffb6d9 0%, #ff9ec7 100%); color: white; border: none; border-radius: 40px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn-secondary { background: linear-gradient(135deg, #e0c0d0 0%, #d4a8c0 100%); }
+        .hidden { display: none; }
+        .message { padding: 12px 16px; border-radius: 16px; margin-bottom: 20px; font-size: 14px; }
+        .message-success { background: #f0f9f0; color: #5b8c5a; border-left: 4px solid #ffb6d9; }
+        .message-error { background: #fff0f0; color: #d47a7a; border-left: 4px solid #ffb6d9; }
+        .qr-container { text-align: center; padding: 20px; background: #fefafc; border-radius: 24px; margin: 20px 0; border: 2px dashed #ffcce0; }
+        .qr-container img { max-width: 180px; }
+        .backup-codes { background: #fff5f8; border-radius: 20px; padding: 18px; margin: 15px 0; border: 1px solid #ffcce0; }
+        .backup-codes ul { list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .backup-codes li { background: white; padding: 8px; border-radius: 40px; text-align: center; font-family: monospace; color: #d4619b; }
+        .status-badge { display: inline-block; padding: 5px 14px; border-radius: 40px; font-size: 12px; }
+        .status-enabled { background: #fff0f5; color: #d4619b; border: 1px solid #ffcce0; }
+        .status-disabled { background: #f5f5f5; color: #b0b0b0; border: 1px solid #e0e0e0; }
+        .device-item { background: #fefafc; padding: 12px 15px; border-radius: 16px; margin-bottom: 10px; border: 1px solid #ffcce0; }
+        .device-item strong { color: #d4619b; }
+        .device-item button { background: #ffdce8; color: #d47a7a; border: none; padding: 5px 12px; border-radius: 30px; cursor: pointer; float: right; }
+        footer { text-align: center; margin-top: 25px; color: #e0b0c8; font-size: 11px; }
+        .switch-link { text-align: center; margin-top: 15px; }
+        .switch-link a { color: #d4619b; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Login Box -->
+    <div id="loginBox" class="card">
+        <div class="card-header">
+            <h1>🌸 2FA Сервис</h1>
+            <p>Двухфакторная аутентификация</p>
+        </div>
+        <div class="card-body">
+            <div id="loginMessage"></div>
+            <div class="form-group">
+                <label>📧 Email</label>
+                <input type="email" id="loginEmail" placeholder="example@mail.ru">
+            </div>
+            <div class="form-group">
+                <label>🔒 Пароль</label>
+                <input type="password" id="loginPassword" placeholder="••••••••">
+            </div>
+            <button class="btn" onclick="handleLogin()">🌸 Войти</button>
+            <div class="switch-link">
+                ✨ Нет аккаунта? <a href="#" onclick="showRegister()">Зарегистрироваться</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Box -->
+    <div id="registerBox" class="card hidden">
+        <div class="card-header">
+            <h1>📝 Регистрация</h1>
+            <p>Создайте аккаунт</p>
+        </div>
+        <div class="card-body">
+            <div id="registerMessage"></div>
+            <div class="form-group">
+                <label>👤 Имя</label>
+                <input type="text" id="regName" placeholder="Анна Смирнова">
+            </div>
+            <div class="form-group">
+                <label>📧 Email</label>
+                <input type="email" id="regEmail" placeholder="anna@example.com">
+            </div>
+            <div class="form-group">
+                <label>🔒 Пароль</label>
+                <input type="password" id="regPassword" placeholder="придумайте пароль">
+            </div>
+            <div class="form-group">
+                <label>🔑 Код администратора</label>
+                <input type="password" id="regAdminCode" placeholder="оставьте пустым">
+                <small style="color:#b890a8;">Введите SUPER_SECRET_123 для прав администратора</small>
+            </div>
+            <button class="btn" onclick="handleRegister()">🌸 Зарегистрироваться</button>
+            <div class="switch-link">
+                ✨ Уже есть аккаунт? <a href="#" onclick="showLogin()">Войти</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Box -->
+    <div id="dashboardBox" class="card hidden">
+        <div class="card-header">
+            <h1>🌸 Привет!</h1>
+            <p id="userEmail"></p>
+        </div>
+        <div class="card-body">
+            <div id="dashboardMessage"></div>
+            <div class="form-group">
+                <label>👤 Ваше имя</label>
+                <p id="userName" style="color: #d4619b;"></p>
+            </div>
+            <div class="form-group">
+                <label>🔐 Статус 2FA</label>
+                <p id="tfaStatus"></p>
+            </div>
+
+            <!-- Единая кнопка для добавления 2FA (работает всегда) -->
+            <div id="tfaActions">
+                <button class="btn" onclick="showAddDeviceForm()">➕ Добавить 2FA</button>
+            </div>
+
+            <!-- Кнопка админ-панели (видна только админам) -->
+            <div id="adminPanelLink" style="margin-top: 15px; display: none;">
+                <button class="btn" onclick="openAdminPanel()">👑 Админ-панель</button>
+            </div>
+
+            <div id="qrContainer" class="qr-container hidden">
+                <img id="qrImage">
+                <p>📱 Отсканируйте QR-код в Google Authenticator</p>
+                <div class="form-group">
+                    <label>📱 Название устройства</label>
+                    <input type="text" id="qrDeviceName" placeholder="Название устройства">
+                </div>
+                <div class="form-group">
+                    <label>🔐 6-значный код</label>
+                    <input type="text" id="totpCode" placeholder="000000" maxlength="6">
+                </div>
+                <button class="btn" onclick="verifyTOTP()">✅ Подтвердить</button>
+                <button class="btn btn-secondary" onclick="cancelAddDevice()" style="margin-top: 5px;">❌ Отмена</button>
+            </div>
+
+            <div id="backupContainer" class="backup-codes hidden">
+                <h4>🌸 Сохраните эти коды!</h4>
+                <ul id="backupList"></ul>
+            </div>
+
+
+            <!-- Push-уведомления -->
+            <div id="pushContainer" style="margin: 20px 0;">
+                <button class="btn" id="showPushFormBtn" onclick="togglePushForm()">📲 Добавить Push-2FA</button>
+                <div id="pushForm" class="hidden" style="margin-top: 15px;">
+                    <div class="form-group">
+                        <label>📱 Название устройства (например, iPhone 15)</label>
+                        <input type="text" id="pushDeviceName" placeholder="Мой телефон">
+                    </div>
+                    <div class="form-group">
+                        <label>🔑 FCM-токен (из мобильного приложения)</label>
+                        <input type="text" id="fcmToken" placeholder="вставьте токен">
+                    </div>
+                    <button class="btn" onclick="enablePush2FA()">✅ Включить Push-2FA</button>
+                    <button class="btn btn-secondary" onclick="cancelPushForm()" style="margin-top: 8px;">❌ Отмена</button>
+                </div>
+                <div id="pushStatusText" style="font-size: 12px; color: #b890a8; margin-top: 8px;"></div>
+            </div>
+
+
+            <div class="form-group">
+                <label>📱 Мои устройства</label>
+                <div id="devicesList"></div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="logout()">🚪 Выйти</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>🌸 2FA Service — безопасно и просто</p>
+    </footer>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:8000/api/v1';
+    let accessToken = localStorage.getItem('access_token');
+    let tempToken = null;
+    let pendingDeviceName = '';
+
+    function showMessage(elementId, message, type) {
+        const el = document.getElementById(elementId);
+        if (el) {
+            el.innerHTML = `<div class="message message-${type}">${message}</div>`;
+            setTimeout(() => el.innerHTML = '', 5000);
+        }
+    }
+
+    function showLogin() {
+        document.getElementById('loginBox').classList.remove('hidden');
+        document.getElementById('registerBox').classList.add('hidden');
+        document.getElementById('dashboardBox').classList.add('hidden');
+    }
+
+    function showRegister() {
+        document.getElementById('loginBox').classList.add('hidden');
+        document.getElementById('registerBox').classList.remove('hidden');
+        document.getElementById('dashboardBox').classList.add('hidden');
+    }
+
+    function showDashboard() {
+        document.getElementById('loginBox').classList.add('hidden');
+        document.getElementById('registerBox').classList.add('hidden');
+        document.getElementById('dashboardBox').classList.remove('hidden');
+        loadUserData();
+    }
+
+    function openAdminPanel() {
+        const token = localStorage.getItem('access_token');
+        window.open(`/api/v1/admin/dashboard?token=${token}`, '_blank');
+    }
+
+    function cancelAddDevice() {
+        document.getElementById('qrContainer').classList.add('hidden');
+        document.getElementById('tfaActions').style.display = 'block';
+        document.getElementById('totpCode').value = '';
+        pendingDeviceName = '';
+    }
+
+    function showAddDeviceForm() {
+    // Очищаем поля
+        document.getElementById('qrDeviceName').value = '';
+        document.getElementById('totpCode').value = '';
+        document.getElementById('qrImage').src = '';
+    
+    // Показываем контейнер с формой
+        document.getElementById('qrContainer').classList.remove('hidden');
+    }
+
+    async function generateQRForDevice(deviceName) {
+        if (!deviceName || deviceName.trim() === '') {
+            showMessage('dashboardMessage', 'Введите название устройства', 'error');
+            return false;
+        }
+    
+        pendingDeviceName = deviceName;
+    
+        try {
+            const response = await fetch(`${API_URL}/tfa/enable-totp?device_name=${encodeURIComponent(deviceName)}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const data = await response.json();
+        
+            if (response.ok) {
+                document.getElementById('qrImage').src = `data:image/png;base64,${data.qr_code_base64}`;
+                showMessage('dashboardMessage', `QR-код для "${deviceName}" готов. Отсканируйте в Google Authenticator`, 'success');
+                return true;
+            } else {
+                showMessage('dashboardMessage', data.detail || 'Ошибка', 'error');
+                return false;
+            }
+        } catch (error) {
+            showMessage('dashboardMessage', 'Ошибка сервера', 'error');
+            return false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const deviceNameInput = document.getElementById('qrDeviceName');
+        if (deviceNameInput) {
+            deviceNameInput.addEventListener('input', function() {
+                const name = this.value.trim();
+                if (name) {
+                    generateQRForDevice(name);
+                }
+            });
+        }
+    });
+
+    async function handleRegister() {
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+        const adminCode = document.getElementById('regAdminCode').value;
+        if (!name || !email || !password) {
+            showMessage('registerMessage', 'Заполните все поля', 'error');
+            return;
+        }
+        try {
+            const response = await fetch(`${API_URL}/auth/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ full_name: name, email, password, tfa_enabled: false, admin_code: adminCode })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                showMessage('registerMessage', '✨ Регистрация успешна!', 'success');
+                setTimeout(() => showLogin(), 2000);
+            } else {
+                showMessage('registerMessage', data.detail || 'Ошибка', 'error');
+            }
+        } catch (error) {
+            showMessage('registerMessage', 'Ошибка сервера', 'error');
+        }
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        if (!email || !password) {
+            showMessage('loginMessage', 'Заполните все поля', 'error');
+            return;
+        }
+        try {
+            const formData = new URLSearchParams();
+            formData.append('username', email);
+            formData.append('password', password);
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok && data.access_token) {
+                accessToken = data.access_token;
+                localStorage.setItem('access_token', accessToken);
+                showDashboard();
+            } else if (data.requires_2fa && data.temp_token) {
+                tempToken = data.temp_token;
+                const code = prompt('🌸 Введите код из Google Authenticator:');
+                if (code) await verify2FALogin(code);
+            } else {
+                showMessage('loginMessage', data.detail || 'Ошибка входа', 'error');
+            }
+        } catch (error) {
+            showMessage('loginMessage', 'Ошибка сервера', 'error');
+        }
+    }
+
+    async function verify2FALogin(code) {
+        try {
+            const response = await fetch(`${API_URL}/tfa/verify?temp_token=${tempToken}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+            const data = await response.json();
+            if (response.ok && data.access_token) {
+                accessToken = data.access_token;
+                localStorage.setItem('access_token', accessToken);
+                showDashboard();
+            } else {
+                alert('Неверный код 2FA');
+                showLogin();
+            }
+        } catch (error) {
+            alert('Ошибка проверки 2FA');
+            showLogin();
+        }
+    }
+
+    async function loadUserData() {
+        if (!accessToken) return;
+        try {
+            const response = await fetch(`${API_URL}/auth/me`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const user = await response.json();
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userName').textContent = user.full_name;
+            const statusEl = document.getElementById('tfaStatus');
+            if (user.tfa_enabled) {
+                statusEl.innerHTML = '<span class="status-badge status-enabled">✅ 2FA включена</span>';
+            } else {
+                statusEl.innerHTML = '<span class="status-badge status-disabled">❌ 2FA выключена</span>';
+            }
+            document.getElementById('tfaActions').style.display = 'block';
+            
+            // Показать кнопку админ-панели, если пользователь админ
+            if (user.is_admin) {
+                document.getElementById('adminPanelLink').style.display = 'block';
+            } else {
+                document.getElementById('adminPanelLink').style.display = 'none';
+            }
+            
+            await loadDevices();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function loadDevices() {
+        try {
+            const response = await fetch(`${API_URL}/devices/`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const devices = await response.json();
+            const devicesList = document.getElementById('devicesList');
+            if (devices.length === 0) {
+                devicesList.innerHTML = '<p>Нет устройств</p>';
+            } else {
+                devicesList.innerHTML = devices.map(d => `
+                    <div class="device-item">
+                        <strong>📱 ${d.device_name}</strong> (${d.device_type === 'totp' ? 'TOTP' : 'Push'})
+                        <button onclick="deleteDevice(${d.id})">🗑️ Удалить</button>
+                        <div style="clear:both"></div>
+                    </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function deleteDevice(deviceId) {
+        if (!confirm('Удалить устройство?')) return;
+        try {
+            await fetch(`${API_URL}/devices/${deviceId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            await loadDevices();
+            await loadUserData();
+        } catch (error) {
+            showMessage('dashboardMessage', 'Ошибка удаления', 'error');
+        }
+    }
+
+    async function enableTOTP() {
+        const deviceName = document.getElementById('deviceName').value || "Мой телефон";
+        pendingDeviceName = deviceName;
+        try {
+            const response = await fetch(`${API_URL}/tfa/enable-totp?device_name=${encodeURIComponent(deviceName)}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const data = await response.json();
+            document.getElementById('qrImage').src = `data:image/png;base64,${data.qr_code_base64}`;
+            document.getElementById('qrContainer').classList.remove('hidden');
+            document.getElementById('qrDeviceName').value = deviceName;
+            document.getElementById('tfaActions').style.display = 'none';
+        } catch (error) {
+            showMessage('dashboardMessage', 'Ошибка включения 2FA', 'error');
+        }
+    }
+
+    async function verifyTOTP() {
+        const code = document.getElementById('totpCode').value;
+        const deviceName = document.getElementById('qrDeviceName').value || pendingDeviceName;
+    
+        if (!code || code.length !== 6) {
+            showMessage('dashboardMessage', 'Введите 6-значный код', 'error');
+            return;
+        }
+    
+        try {
+            const response = await fetch(`${API_URL}/tfa/verify-totp?device_name=${encodeURIComponent(deviceName)}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code: code })
+            });
+            const data = await response.json();
+        
+            if (response.ok) {
+                // Закрываем форму
+                document.getElementById('qrContainer').classList.add('hidden');
+                document.getElementById('totpCode').value = '';
+                document.getElementById('qrDeviceName').value = '';
+                document.getElementById('qrImage').src = '';
+            
+                // Показываем резервные коды
+                if (data.backup_codes && data.backup_codes.length > 0) {
+                    const backupList = document.getElementById('backupList');
+                    backupList.innerHTML = data.backup_codes.map(c => `<li>${c}</li>`).join('');
+                    document.getElementById('backupContainer').classList.remove('hidden');
+                    showMessage('dashboardMessage', `🌸 Устройство "${deviceName}" добавлено! Сохраните резервные коды.`, 'success');
+                    setTimeout(() => {
+                        document.getElementById('backupContainer').classList.add('hidden');
+                        location.reload();
+                    }, 8000);
+                } else {
+                    showMessage('dashboardMessage', `🌸 Устройство "${deviceName}" добавлено!`, 'success');
+                    setTimeout(() => location.reload(), 2000);
+                }
+            } else {
+                showMessage('dashboardMessage', data.detail || 'Неверный код', 'error');
+            }
+        } catch (error) {
+            showMessage('dashboardMessage', 'Ошибка проверки', 'error');
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('access_token');
+        accessToken = null;
+        showLogin();
+    }
+
+    if (accessToken) {
+        showDashboard();
+    }
+
+
+    // Push-уведомления
+    function togglePushForm() {
+        const form = document.getElementById('pushForm');
+        if (form.classList.contains('hidden')) {
+            form.classList.remove('hidden');
+        } else {
+            form.classList.add('hidden');
+        }
+    }
+
+    function cancelPushForm() {
+        document.getElementById('pushForm').classList.add('hidden');
+        document.getElementById('pushDeviceName').value = '';
+        document.getElementById('fcmToken').value = '';
+    }
+
+    async function enablePush2FA() {
+        const deviceName = document.getElementById('pushDeviceName').value.trim();
+        const fcmToken = document.getElementById('fcmToken').value.trim();
+
+        if (!deviceName || !fcmToken) {
+            showMessage('dashboardMessage', 'Заполните название устройства и FCM-токен', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/tfa/enable-push?device_name=${encodeURIComponent(deviceName)}&fcm_token=${encodeURIComponent(fcmToken)}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('dashboardMessage', '✅ Push-устройство добавлено!', 'success');
+                cancelPushForm();
+                loadDevices();
+            } else {
+                showMessage('dashboardMessage', data.detail || 'Ошибка при добавлении push-устройства', 'error');
+            }
+        } catch (error) {
+            showMessage('dashboardMessage', 'Ошибка сервера', 'error');
+        }
+    }
+
+
+</script>
+</body>
+</html>

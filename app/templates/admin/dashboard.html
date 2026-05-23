@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Service - Админ панель</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 .emoji {
+            font-size: 32px;
+        }
+
+        .header .user-info {
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .user-email {
+            background: #f0f0f0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Stats Cards */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card .sub {
+            color: #999;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        /* Sections */
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 22px;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: #5a67d8;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-totp {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-push {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .badge-active {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .badge-inactive {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .badge-enabled {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .badge-disabled {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        /* Buttons */
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: opacity 0.3s;
+            margin-right: 5px;
+        }
+
+        .btn:hover {
+            opacity: 0.85;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 11px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-content p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Status Message */
+        .status-msg {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Search */
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            width: 250px;
+            font-size: 14px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            th, td {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <span class="emoji">🔐</span>
+                2FA Service Admin
+            </h1>
+            <div class="user-info">
+                <span class="user-email">📧 {{ user.email }}</span>
+                <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats">
+            <div class="stat-card">
+                <h3>👥 Всего пользователей</h3>
+                <div class="number" id="totalUsers">-</div>
+                <div class="sub">зарегистрировано в системе</div>
+            </div>
+            <div class="stat-card">
+                <h3>🔐 2FA включено</h3>
+                <div class="number" id="tfaEnabledUsers">-</div>
+                <div class="sub">пользователей с двухфакторной аутентификацией</div>
+            </div>
+            <div class="stat-card">
+                <h3>📱 Всего устройств</h3>
+                <div class="number" id="totalDevices">-</div>
+                <div class="sub">зарегистрированных устройств</div>
+            </div>
+            <div class="stat-card">
+                <h3>📟 TOTP / Push</h3>
+                <div class="number" id="totpVsPush">-</div>
+                <div class="sub">устройств TOTP : Push</div>
+            </div>
+        </div>
+
+        <!-- Users Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>👥 Управление пользователями</h2>
+                <div>
+                    <input type="text" id="userSearch" class="search-box" placeholder="🔍 Поиск по email..." onkeyup="filterUsers()">
+                    <button class="refresh-btn" onclick="loadUsers()">🔄 Обновить</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>Полное имя</th>
+                            <th>2FA</th>
+                            <th>Статус</th>
+                            <th>Дата регистрации</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr><td colspan="7" style="text-align: center;">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Devices Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📱 Устройства и 2FA</h2>
+                <button class="refresh-btn" onclick="loadDevices()">🔄 Обновить</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="devicesTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Пользователь</th>
+                            <th>Название устройства</th>
+                            <th>Тип</th>
+                            <th>Активно</th>
+                            <th>Последнее использование</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="devicesTableBody">
+                        <tr><td colspan="7" style="text-align: center;">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>2FA Service - Система двухфакторной аутентификации | © 2024</p>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3>⚠️ Подтверждение действия</h3>
+            <p id="modalMessage">Вы уверены, что хотите выполнить это действие?</p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeModal()">Отмена</button>
+                <button class="btn btn-danger" id="modalConfirmBtn">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div id="statusMsg" class="status-msg"></div>
+
+    <script>
+        let currentAction = null;
+        let currentUserId = null;
+        let currentDeviceId = null;
+
+        // Get token from localStorage
+        function getToken() {
+            return localStorage.getItem('access_token');
+        }
+
+        // Save token
+        function setToken(token) {
+            localStorage.setItem('access_token', token);
+        }
+
+        // Show status message
+        function showStatus(message, type = 'success') {
+            const msgDiv = document.getElementById('statusMsg');
+            msgDiv.textContent = message;
+            msgDiv.className = `status-msg status-${type}`;
+            msgDiv.style.display = 'block';
+            setTimeout(() => {
+                msgDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Show modal
+        function showModal(message, onConfirm) {
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('confirmModal').classList.add('active');
+            currentAction = onConfirm;
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            currentAction = null;
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('access_token');
+            window.location.href = '/api/v1/admin/dashboard';
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const token = getToken();
+                if (!token) return;
+
+                const response = await fetch('/api/v1/admin/users?limit=1000', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const users = data.users;
+                    const total = data.total;
+
+                    let tfaCount = users.filter(u => u.tfa_enabled).length;
+
+                    document.getElementById('totalUsers').textContent = total;
+                    document.getElementById('tfaEnabledUsers').textContent = tfaCount;
+                    document.getElementById('tfaPercent').textContent = 
+                        total > 0 ? Math.round((tfaCount / total) * 100) + '%' : '0%';
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load users
+        async function loadUsers() {
+            try {
+                const token = getToken();
+                if (!token) {
+                    window.location.href = '/api/v1/admin/dashboard';
+                    return;
+                }
+
+                const response = await fetch('/api/v1/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.status === 403) {
+                    showStatus('Доступ запрещён. Требуются права администратора.', 'error');
+                    return;
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderUsers(data.users);
+                    loadStats();
+                } else if (response.status === 401) {
+                    localStorage.removeItem('access_token');
+                    window.location.href = '/api/v1/admin/dashboard';
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showStatus('Ошибка загрузки пользователей', 'error');
+            }
+        }
+
+        // Render users table
+        function renderUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Нет пользователей</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => `
+                <tr data-email="${user.email.toLowerCase()}">
+                    <td>${user.id}</td>
+                    <td>${escapeHtml(user.email)}</td>
+                    <td>${escapeHtml(user.full_name)}</td>
+                    <td><span class="badge ${user.tfa_enabled ? 'badge-enabled' : 'badge-disabled'}">${user.tfa_enabled ? '✅ Включена' : '❌ Отключена'}</span></td>
+                    <td><span class="badge ${user.is_active ? 'badge-active' : 'badge-inactive'}">${user.is_active ? 'Активен' : 'Заблокирован'}</span></td>
+                    <td>${new Date(user.created_at).toLocaleDateString('ru-RU')}</td>
+                    <td>
+                        <button class="btn btn-sm" onclick="viewUserDevices(${user.id})">📱 Устройства</button>
+                        <button class="btn btn-danger btn-sm" onclick="disableUser2FA(${user.id})">🔓 Отключить 2FA</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Filter users by search
+        function filterUsers() {
+            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTableBody tr');
+            
+            rows.forEach(row => {
+                const email = row.getAttribute('data-email') || '';
+                if (email.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Load all devices
+        async function loadDevices() {
+            try {
+                const token = getToken();
+                const response = await fetch('/api/v1/admin/users?limit=1000', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    let allDevices = [];
+                    for (const user of data.users) {
+                        const devicesResponse = await fetch(`/api/v1/admin/users/${user.id}/devices`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (devicesResponse.ok) {
+                            const devicesData = await devicesResponse.json();
+                            allDevices = allDevices.concat(devicesData.devices.map(d => ({ ...d, user_email: user.email })));
+                        }
+                    }
+                    renderDevices(allDevices);
+                    
+                    const totpCount = allDevices.filter(d => d.device_type === 'totp').length;
+                    const pushCount = allDevices.filter(d => d.device_type === 'push').length;
+                    document.getElementById('totpVsPush').textContent = `${totpCount} : ${pushCount}`;
+                    document.getElementById('totalDevices').textContent = allDevices.length;
+                }
+            } catch (error) {
+                console.error('Error loading devices:', error);
+            }
+        }
+
+        // Render devices table
+        function renderDevices(devices) {
+            const tbody = document.getElementById('devicesTableBody');
+            if (!devices || devices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Нет устройств</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = devices.map(device => `
+                <tr>
+                    <td>${device.id}</td>
+                    <td>${escapeHtml(device.user_email)}</td>
+                    <td>${escapeHtml(device.device_name)}</td>
+                    <td><span class="badge ${device.device_type === 'totp' ? 'badge-totp' : 'badge-push'}">${device.device_type === 'totp' ? '📟 TOTP' : '📱 Push'}</span></td>
+                    <td><span class="badge ${device.is_active ? 'badge-active' : 'badge-inactive'}">${device.is_active ? 'Активно' : 'Неактивно'}</span></td>
+                    <td>${device.last_used_at ? new Date(device.last_used_at).toLocaleString('ru-RU') : 'Никогда'}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="deleteDevice(${device.user_id}, ${device.id})">🗑️ Удалить</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // View user devices
+        async function viewUserDevices(userId) {
+            try {
+                const token = getToken();
+                const response = await fetch(`/api/v1/admin/users/${userId}/devices`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.devices.length === 0) {
+                        showStatus('У пользователя нет устройств 2FA', 'info');
+                    } else {
+                        let message = '📱 Устройства пользователя:\n';
+                        data.devices.forEach(d => {
+                            message += `\n• ${d.device_name} (${d.device_type === 'totp' ? 'TOTP' : 'Push'}) - ${d.is_active ? 'активно' : 'неактивно'}`;
+                        });
+                        alert(message);
+                    }
+                }
+            } catch (error) {
+                showStatus('Ошибка загрузки устройств', 'error');
+            }
+        }
+
+        // Disable 2FA for user
+        function disableUser2FA(userId) {
+            showModal('Вы уверены, что хотите отключить 2FA для этого пользователя?', async () => {
+                try {
+                    const token = getToken();
+                    const response = await fetch(`/api/v1/admin/users/${userId}/disable-2fa`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        showStatus('2FA успешно отключена', 'success');
+                        loadUsers();
+                        loadDevices();
+                    } else {
+                        showStatus('Ошибка отключения 2FA', 'error');
+                    }
+                } catch (error) {
+                    showStatus('Ошибка сети', 'error');
+                }
+                closeModal();
+            });
+        }
+
+        // Delete device
+        function deleteDevice(userId, deviceId) {
+            showModal('Вы уверены, что хотите удалить это устройство?', async () => {
+                try {
+                    const token = getToken();
+                    const response = await fetch(`/api/v1/admin/users/${userId}/devices/${deviceId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        showStatus('Устройство удалено', 'success');
+                        loadDevices();
+                        loadUsers();
+                    } else {
+                        showStatus('Ошибка удаления устройства', 'error');
+                    }
+                } catch (error) {
+                    showStatus('Ошибка сети', 'error');
+                }
+                closeModal();
+            });
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // For demo purposes, we'll load data
+            // In production, verify token first
+            loadUsers();
+            loadDevices();
+        });
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            loadUsers();
+            loadDevices();
+        }, 30000);
+    </script>
+</body>
+</html>
