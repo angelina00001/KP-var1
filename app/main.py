@@ -6,9 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app.api import admin, auth, devices, tfa, web
 from app.config import settings
-from app.api import auth, tfa, devices, admin, web
-from app.database import engine, Base
+from app.database import Base, engine
 
 
 async def init_db():

@@ -1,7 +1,9 @@
-import pytest
 from datetime import timedelta
-from app.services.auth_service import AuthService
+
+import pytest
+
 from app.config import settings
+from app.services.auth_service import AuthService
 
 
 class TestAuthService:

@@ -1,9 +1,10 @@
-import pyotp
-import qrcode
-import io
 import base64
+import io
 import secrets
 from typing import List, Tuple
+
+import pyotp
+import qrcode
 
 from app.services.auth_service import AuthService
 

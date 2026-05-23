@@ -1,6 +1,7 @@
-import pytest
-from app.services.totp_service import TOTPService
 import pyotp
+import pytest
+
+from app.services.totp_service import TOTPService
 
 
 class TestTOTPService:

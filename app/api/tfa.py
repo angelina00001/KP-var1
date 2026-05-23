@@ -1,23 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from pydantic import BaseModel
-from typing import Optional
 import secrets
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import User, Device, BackupCode
-from app.schemas import (
-    TOTPEnableResponse,
-    TOTPVerifyRequest,
-    TFAVerifyRequest,
-    LoginResponse,
-)
-from app.services.totp_service import TOTPService
+from app.dependencies import get_current_user, get_redis
+from app.models import BackupCode, Device, User
+from app.schemas import (LoginResponse, TFAVerifyRequest, TOTPEnableResponse,
+                         TOTPVerifyRequest)
 from app.services.auth_service import AuthService
 from app.services.push_service import PushService
-from app.services.totp_session import save_setup_session, pop_setup_session
-from app.dependencies import get_current_user, get_redis
+from app.services.totp_service import TOTPService
+from app.services.totp_session import pop_setup_session, save_setup_session
 
 router = APIRouter()
 push_service = PushService()

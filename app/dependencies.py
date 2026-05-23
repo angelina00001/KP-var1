@@ -1,14 +1,15 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from typing import Optional
-import redis.asyncio as redis
 
-from app.database import get_db
-from app.services.auth_service import AuthService
-from app.models import User
+import redis.asyncio as redis
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.config import settings
+from app.database import get_db
+from app.models import User
+from app.services.auth_service import AuthService
 
 # Redis client for storing push nonces and temp data
 redis_client = None
