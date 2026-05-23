@@ -9,8 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_user, get_redis
 from app.models import BackupCode, Device, User
-from app.schemas import (LoginResponse, TFAVerifyRequest, TOTPEnableResponse,
-                         TOTPVerifyRequest)
+from app.schemas import (
+    LoginResponse,
+    TFAVerifyRequest,
+    TOTPEnableResponse,
+    TOTPVerifyRequest,
+)
 from app.services.auth_service import AuthService
 from app.services.push_service import PushService
 from app.services.totp_service import TOTPService
