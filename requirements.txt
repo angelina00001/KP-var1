@@ -33,3 +33,5 @@ httpx==0.25.1
 # Security tools (SAST)
 bandit==1.7.5
 safety>=2.0
+
+echo "email-validator>=2.0.0" >> requirements.txt
