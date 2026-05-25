@@ -168,7 +168,10 @@ async def admin_delete_user(
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Неверный токен")
 
-    current_user_id = int(payload.get("sub"))
+    sub = payload.get("sub")
+    if sub is None:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+    current_user_id = int(sub)
     result = await db.execute(select(User).where(User.id == current_user_id))
     current_user = result.scalar_one_or_none()
 
@@ -203,7 +206,10 @@ async def admin_disable_2fa(
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Неверный токен")
 
-    current_user_id = int(payload.get("sub"))
+    sub = payload.get("sub")
+    if sub is None:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+    current_user_id = int(sub)  # вместо current_user_id = int(payload.get("sub"))
     result = await db.execute(select(User).where(User.id == current_user_id))
     current_user = result.scalar_one_or_none()
 
@@ -236,7 +242,10 @@ async def admin_toggle_admin(
     if not payload or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Неверный токен")
 
-    current_user_id = int(payload.get("sub"))
+    sub = payload.get("sub")
+    if sub is None:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+    current_user_id = int(sub)
     result = await db.execute(select(User).where(User.id == current_user_id))
     current_user = result.scalar_one_or_none()
 
@@ -271,7 +280,10 @@ async def admin_dashboard(
     if token:
         payload = AuthService.decode_token(token)
         if payload and payload.get("type") == "access":
-            user_id = int(payload.get("sub"))
+            sub = payload.get("sub")
+            if sub is None:
+                return HTMLResponse(status_code=401, content="Не авторизован")
+            user_id = int(sub)
             result = await db.execute(select(User).where(User.id == user_id))
             current_user = result.scalar_one_or_none()
 
@@ -281,7 +293,10 @@ async def admin_dashboard(
             token = auth_header[7:]
             payload = AuthService.decode_token(token)
             if payload and payload.get("type") == "access":
-                user_id = int(payload.get("sub"))
+                sub = payload.get("sub")
+                if sub is not None:  # меняем условие
+                    return HTMLResponse(status_code=401, content="Не авторизован")
+                user_id = int(sub)
                 result = await db.execute(select(User).where(User.id == user_id))
                 current_user = result.scalar_one_or_none()
 

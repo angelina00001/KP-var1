@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     app_name: str = "2FA Service"
     debug: bool = False
 
-    model_config = ConfigDict(env_file=".env", extra="ignore")
+    model_config = ConfigDict(env_file=".env", extra="ignore")  # type: ignore[call-arg]
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

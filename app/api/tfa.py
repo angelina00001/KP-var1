@@ -121,6 +121,9 @@ async def verify_2fa(
         .all()
     )
 
+    if req.code is None:
+        raise HTTPException(status_code=400, detail="Код не предоставлен")
+
     for d in devices:
         if d.totp_secret and TOTPService.verify_code(d.totp_secret, req.code):
             d.last_used_at = func.now()
