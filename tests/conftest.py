@@ -5,6 +5,7 @@ import os
 import tempfile
 
 
+# Загружаем переменные ДО импортов
 def _bootstrap_test_env() -> None:
     if os.environ.get("PYTEST_2FA_BOOTSTRAPPED"):
         return
@@ -31,10 +32,9 @@ def _bootstrap_test_env() -> None:
     os.environ["PYTEST_2FA_BOOTSTRAPPED"] = "1"
 
 
-# Загружаем переменные ДО импортов
 _bootstrap_test_env()
 
-# Импорты с отключением проверки flake8
+# Теперь импорты (с игнорированием flake8)
 import pytest  # noqa: E402
 from httpx import AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
@@ -55,6 +55,7 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 async def db_engine():
+    """Создаёт тестовую базу данных и таблицы"""
     database_url = os.environ.get("DATABASE_URL")
     engine = create_async_engine(database_url, echo=False)
 
@@ -69,8 +70,15 @@ async def db_engine():
     await engine.dispose()
 
 
+@pytest.fixture(autouse=True, scope="session")
+async def setup_database(db_engine):
+    """Автоматически запускается перед всеми тестами"""
+    pass  # Просто нужна зависимость от db_engine
+
+
 @pytest.fixture
 async def db_session(db_engine):
+    """Создаёт сессию базы данных для каждого теста"""
     async_session = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:
         yield session
@@ -78,6 +86,8 @@ async def db_session(db_engine):
 
 @pytest.fixture
 async def client(db_session):
+    """Создаёт HTTP клиент для тестирования API"""
+
     async def override_get_db():
         yield db_session
 
