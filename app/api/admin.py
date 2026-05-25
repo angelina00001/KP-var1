@@ -294,9 +294,10 @@ async def admin_dashboard(
             payload = AuthService.decode_token(token)
             if payload and payload.get("type") == "access":
                 sub = payload.get("sub")
-                if sub is not None:  # меняем условие
+                # ИСПРАВЛЕНИЕ ЗДЕСЬ:
+                if sub is None:  # если None, то ошибка
                     return HTMLResponse(status_code=401, content="Не авторизован")
-                user_id = int(sub)
+                user_id = int(sub)  # type: ignore[call-overload]
                 result = await db.execute(select(User).where(User.id == user_id))
                 current_user = result.scalar_one_or_none()
 
