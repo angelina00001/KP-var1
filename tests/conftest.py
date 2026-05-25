@@ -4,13 +4,6 @@ import json
 import os
 import tempfile
 
-import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-
-from app.database import Base, get_db
-from app.main import app
-
 
 def _bootstrap_test_env() -> None:
     if os.environ.get("PYTEST_2FA_BOOTSTRAPPED"):
@@ -38,17 +31,22 @@ def _bootstrap_test_env() -> None:
     os.environ["PYTEST_2FA_BOOTSTRAPPED"] = "1"
 
 
+# Загружаем переменные ДО импортов
 _bootstrap_test_env()
 
+# Импорты с отключением проверки flake8
+import pytest  # noqa: E402
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
+from httpx import AsyncClient  # noqa: E402
 
-# ========== ДОБАВЬТЕ ЭТОТ КОД ==========
+from app.database import Base, get_db  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 @pytest.fixture(scope="session")
 def event_loop():
-    """Создаёт событийный цикл для тестов"""
     import asyncio
-
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
@@ -56,44 +54,37 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 async def db_engine():
-    """Создаёт тестовую базу данных и таблицы"""
-    # Берём DATABASE_URL из переменных окружения (уже установлен в _bootstrap_test_env)
     database_url = os.environ.get("DATABASE_URL")
     engine = create_async_engine(database_url, echo=False)
-
-    # Создаём все таблицы в тестовой БД
+    
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
+    
     yield engine
-
-    # После тестов удаляем таблицы
+    
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-
+    
     await engine.dispose()
 
 
 @pytest.fixture
 async def db_session(db_engine):
-    """Создаёт сессию базы данных для каждого теста"""
-    async_session = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    async_session = sessionmaker(
+        db_engine, class_=AsyncSession, expire_on_commit=False
+    )
     async with async_session() as session:
         yield session
 
 
 @pytest.fixture
 async def client(db_session):
-    """Создаёт HTTP клиент для тестирования API"""
-    from httpx import AsyncClient
-
-    # Переопределяем зависимость get_db, чтобы использовать тестовую сессию
     async def override_get_db():
         yield db_session
-
+    
     app.dependency_overrides[get_db] = override_get_db
-
+    
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
-
+    
     app.dependency_overrides.clear()
