@@ -48,7 +48,8 @@ class TestTOTPService:
         for plain, hashed in codes:
             assert len(plain) == 8  # 8 characters from token_hex(4)
             assert plain.isalnum()
-            assert plain.isupper()
+            assert plain.isdigit()
+            # assert plain.isupper()
             assert hashed.startswith("$argon2")  # Argon2 hash
 
     def test_verify_backup_code(self):
